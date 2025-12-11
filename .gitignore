@@ -1,0 +1,11 @@
+*__pycache__
+
+*.key
+*.csv
+*.lock
+*python-version
+*.cu
+*.pth
+
+results/
+eval_outputs/

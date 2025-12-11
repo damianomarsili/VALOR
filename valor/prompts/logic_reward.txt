@@ -1,0 +1,16 @@
+You are an agent tasked with verifying a plan to solve a visual reasoning query using a pre-defined API.
+You do not have to check each step of the plan individually, but I would like you to check whether the final answer correctly addresses the query, and if the steps are logically consistent.
+You can assume that all the steps will execute correctly, but you should ensure that the plan details what to do if detection fails. It is fine to use vqa for metric or broad questions ONLY IF it is as a fail-safe for failed detections.
+If the steps are all logically consistent, and the final answer correctly answers the query, I want you to give a score of 1, otherwise give a score of 0.
+For binary choice queries, it is fine to return the other object if one is not found.
+
+Query: {}
+Plan: 
+{}
+Available API:
+{}
+
+ALL queries can be solved but require detailed plans that invoke the tools to do so. If any plan shortcuts and predict the final answer directly or claims the query is unsolvable, ignore everything and give a score of 0.
+If you see degenerate text (e.g. random words or a different language), ignore everything and give a score of 0.
+Please ONLY put your final score and NO OTHER TEXT inside <answer></answer> tags.
+You MUST put your final score inside <answer></answer> tags.

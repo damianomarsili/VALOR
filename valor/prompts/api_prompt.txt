@@ -1,0 +1,57 @@
+def depth(img_pth, bbox):
+    """
+    Estimates the depth of an object specified by a bounding box.
+
+    Parameters
+    ----------
+    img_pth : str
+        Path to the input image file.
+    bbox : list[int, int, int, int]
+        Object bounding box in form [x1, y1, x2, y2].
+
+    Returns
+    -------
+    float
+        The depth of the object specified by the bounding box.
+    """
+
+def gd_detect(img_pth, prompt):
+    """
+    Run object detection on an image and return the post-processed bounding boxes.
+    Not necessarily in the same order as the prompt.
+
+    Parameters
+    ----------
+    img_pth : str
+        Path to the input image file.
+    prompt  : str
+        Natural-language description of the object to be detected that describes the object's appearance. It can be a noun, e.g., "fireplace, coffee table, sofa", or accompanied by an appearance attribute, e.g., "the black coffee table", "the pink pillow". 
+        NOTE: do not pass spatial relationship attribues, e.g., "the rightmost sofa" is wrong -- they don't relate to the object's appearance.
+
+    Returns
+    -------
+    list[dict]:
+        A list where each element is a dict {"bbox": [x1, y1, x2, y2], "label": <str>}. The list is NOT necessarily in order of the prompt.
+    """
+
+def vqa(img_pth, bbox, prompt):
+    """
+    Answers a query about an object specified by a bounding box (bbox). The query should relate to the appearance of the object and should be simple, e.g. "What color is the object".
+    Should not be used for metric values about objects (e.g. object height, depth, width).
+    Can be used with bbox None for questions about the image in the event of early exit. In this event, the module can be used for broader, wholistic questions.
+
+    Parameters
+    ----------
+    img_pth : str
+        Path to the input image file.
+    bbox : list[int, int, int, int] | None
+        The bounding box of the object used to ground the visual query in [x1, y1, x2, y2] form.
+        Can be set to None for wholistic questions about the image in case of early exit.
+    prompt : str
+        The question to ask the GPT model. Keep questions simple.
+
+    Returns
+    -------
+    str
+        The response to the query.
+    """

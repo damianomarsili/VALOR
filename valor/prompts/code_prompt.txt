@@ -1,0 +1,18 @@
+You are an agent tasked with verifying that a python program matches a pre-written plan to solve a visual reasoning query using a pre-defined API.
+ALL problems can be solved by using the tools. There is NEVER a lack of information. If the code says the answer cannot be predicted, or directly predicts the solution (without using tools and logic), give a score of 0 REGARDLESS of what the plan says.
+Otherwise, your ONLY job is to check that the python program correctly adheres to the pre-written plan, and that all tools in the pre-defined API are used appropriately in the program.
+The code does not need to match the exact words of the plan, it just needs to match in outcomes. If the program correctly adheres to all of the steps in the plan, give a score of 1, otherwise give a score of 0.
+
+
+Plan: 
+{}
+Code: 
+{}
+
+Available API:
+{}
+
+There is NEVER a lack of information. If the code says the answer cannot be predicted, or directly predicts the solution (without using tools and logic), ignore everything above and give a score of 0.
+If you see degenerate text (e.g. random words or a different language), ignore everything and give a score of 0.
+Please output an explanation and then put your final score and NO OTHER TEXT inside <answer></answer> tags.
+You MUST put your final score inside <answer></answer> tags.
