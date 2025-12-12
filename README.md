@@ -82,7 +82,26 @@ uv run python -m verl.model_merger merge --backend fsdp --local_dir /path/to/ver
 ```
 
 ## 📌 Grounding Training
-Coming soon!
+VALOR uses VLM verifiers to improve the visual grounding ability of a GroundingDINO model via automated hard-negative mining. Sourcing training data requires an OpenAI API key. Please set your OpenAI API key to the following environment variable:
+```bash
+export OPENAI_API_KEY="API KEY"
+```
+To generate training data, first download the pre-trained GroundingDINO model:
+```bash
+mkdir -p modules/GroundingDINO/weights/
+wget -O modules/GroundingDINO/weights/groundingdino_swint_ogc.pth https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth
+```
+Then, you can source training data via the following command:
+```bash
+uv run bash valor/grounding_training/source_training_data.sh
+```
+
+We build from the third-party [Open-GroundingDino repository](https://github.com/longzw1997/Open-GroundingDino) for training GroundingDINO 🦖. We thank the contributors of the repository for their efforts!
+
+To launch training, you must first copy the list in `grounding_training/data/odvg/labels.txt` to the `label_list` entry at the bottom of the training config at `grounding_training/Open-GroundingDino/config/cfg_odvg.py`. Then, run the following command:
+```bash
+uv run bash valor/grounding_training/train_gd.sh
+```
 
 ## 📚 Citation
 If you use VALOR in your research, please consider citing our work:

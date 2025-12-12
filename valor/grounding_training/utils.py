@@ -12,37 +12,111 @@ import torch
 from openai import OpenAI
 from PIL import Image, ImageDraw, ImageFont
 
+
+_OPENAI_CLIENT: OpenAI | None = None
+
 # ---------------------------------------------------------------------------
 # Prompts
 # ---------------------------------------------------------------------------
 
-PASS1_PROMPT = """You are an object-detection verifier.
+PASS1_PROMPT = """You are an Object-Detection Verifier.
 
-You receive:
+You will receive:
 - CLEAN image (truth)
-- ANNOTATED image (same image with numbered boxes + labels)
+- ANNOTATED image (same image with numbered boxes + labels). The number corresponds to the box that it is INSIDE OF.
 - A numbered list of detections (index → label, [x1,y1,x2,y2])
 
-Decide which detections to KEEP or DROP and return JSON:
-{"keep_indices":[...], "drop_indices":[...], "notes":[...]}
+Your task:
+Decide which detections to KEEP and which to DROP.
+Return ONLY the JSON required by the schema: {"keep_indices":[...], "drop_indices":[...], "notes":[...]}.
 
-Correct: box contains one dominant object, label matches, box is reasonably tight.
-Drop if wrong_label or bad_box (too loose/tight, mostly background, chops object, covers multiple instances).
-Indices are 1-based; partition all indices; keep_indices sorted by input order.
-Notes are short per decision. No prose outside JSON."""
+Definitions (judge against the CLEAN image):
+- Correct: the dominant object of the box is an instance of the labeled object; label matches; box is reasonably tight (some background or a small part of another object visible in the borders of the box is OK).
+- Incorrect → drop for any of:
+  • wrong_label — contents don’t match the label or no clear object.
+  • bad_box — far too loose/tight, mostly background, contains the entirety of multiple instances, or chops off the object.
 
-BOX_CHECK_PROMPT = """You get one cropped image and a label.
-Return JSON {"keep": true/false, "reason": "..."}.
-keep=true only if the labeled object is clearly the main subject and visible.
-Drop for wrong class, heavy truncation, ambiguous subject, or multiple objects filling the crop.
-No text outside JSON."""
+Indexing:
+- Indices are 1-based and must be fully partitioned into keep or drop. No omissions or repeats.
+- keep_indices should be sorted by input order.
 
-PASS3_PROMPT = """Final pass over remaining detections.
-Return JSON {"keep_indices":[...], "drop_indices":[...], "notes":[...]}.
-Keep when label matches and box cleanly frames the object.
-Drop wrong_label or duplicates (same instance: strong overlap, nested, or nearly coincident).
-Resolve duplicates by keeping the box that best covers the object with minimal background; if tied, earlier index.
-Indices 1-based and fully partitioned."""
+Notes (short, per decision):
+- "4 wrong_label (label=cat, object=dog)"
+- "5 bad_box (cuts off left side)"
+
+Never propose new boxes or relabel. When uncertain, favor precision (drop).
+Return ONLY the JSON object—no prose.
+"""
+
+BOX_CHECK_PROMPT = """You are a single-box verifier.
+
+Input:
+- One CROPPED image.
+- One predicted label
+
+Goal:
+Decide whether the **main visible object in the crop clearly matches the label**.
+
+Rules (be strict):
+- Set keep=true only if the labeled object is the **dominant subject**, is **clearly visible**, and is **recognizably** that class. The correct object should dominate the image.
+- Minor background is fine; the object should not be tiny or incidental. It is acceptable if a small part of another object is visible in the borders of the image -- but it should not take up more than 20 percent of the image.
+
+Set keep=false for any of the following:
+- Wrong class: the visible object is a different category, or no clear object of the labeled class is present.
+- Truncation: the crop cuts off a substantial part so the class cannot be confidently verified.
+- Unclear central object: crop includes several objects and it’s not clear which one matches the label.
+- Multiple objects: crop includes significant portions/all of several objects of the correct class, not just one.
+
+Output:
+Return ONLY JSON matching the caller’s schema, e.g.:
+{"keep": true/false, "reason": "very brief justification"}.
+No extra text or markdown."""
+
+PASS3_PROMPT = """You are the FINAL-PASS object-detection verifier.
+
+You will receive:
+- CLEAN image (truth)
+- ANNOTATED image (same image with numbered boxes + labels). The number corresponds to the box that it is INSIDE OF.
+- A numbered list of detections (index → label, [x1,y1,x2,y2])
+
+Goal:
+Do a last sanity sweep on the remaining detections. Remove any **incorrect** boxes and resolve **residual duplicates**—with special attention to nested (“sub-object”) boxes and boxes that are very close to each other.
+
+What to KEEP (correct):
+- The box contains one main, dominant object.
+- Label matches the object class.
+- Box is reasonably tight without chopping the object.
+- It is acceptable if a small part of another object is visible in the borders of the box -- but it should not take up more than 20 percent of the box.
+
+DROP if any of these apply:
+- **wrong_label** — contents don’t match the label, or no clear object of that class.
+- **duplicate** — another detection refers to the same physical instance (rules below).
+
+Duplicate rules (same/compatible class):
+Treat two detections as duplicates of the **same** instance if ANY is true:
+1) They substantially overlap and the dominant object of both boxes is the same.
+2) One box lies almost entirely inside the other (nested/sub-object case).
+3) Their centers and extents are almost the same (nearly coincident), even if overlap isn’t huge.
+
+Resolving duplicates:
+- Keep **exactly one** per duplicate group; drop the rest.
+- Prefer the box that best covers the full object with the least extra background.
+- If the tighter box chops the object, keep the larger.
+- If still unsure, keep the earlier index.
+
+Indexing:
+- Indices are 1-based and must be fully partitioned into keep or drop. No omissions or repeats.
+- keep_indices should follow input order.
+
+Notes (short, per decision):
+- "7 duplicate_of 3 (nested; 3 covers full object)"
+- "12 duplicate_of 9 (nearly coincident; kept tighter 12)"
+- "4 wrong_label (label=fireplace; object=tv)"
+- "5 bad_box (too loose; mostly background)"
+
+Output:
+Return ONLY the JSON required by the schema: {"keep_indices":[...], "drop_indices":[...], "notes":[...]}.
+No prose or markdown."""
 
 
 # ---------------------------------------------------------------------------
@@ -217,8 +291,11 @@ def _extract_output_text(resp) -> str:
 
 
 def _openai_client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
-    return OpenAI(api_key=api_key) if api_key else OpenAI()
+    global _OPENAI_CLIENT
+    if _OPENAI_CLIENT is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        _OPENAI_CLIENT = OpenAI(api_key=api_key)
+    return _OPENAI_CLIENT
 
 
 def ask_pass_level_filter(
@@ -251,10 +328,11 @@ def ask_pass_level_filter(
 
     user_text = (
         "Inputs for verification:\n"
-        "• CLEAN_IMAGE (truth) then ANNOTATED_IMAGE (with boxes+labels).\n"
+        "• CLEAN_IMAGE below (truth), then ANNOTATED_IMAGE (with boxes+labels).\n"
         "• Detections (1-based index → label, [x1,y1,x2,y2] in px):\n"
         f"{mapping_text}\n\n"
-        "Return only JSON with keys keep_indices, drop_indices, notes. Partition all indices."
+        "Output only JSON with keys keep_indices, drop_indices, notes. "
+        "Partition all indices; no omissions."
     )
     if extra_instructions:
         user_text += f"\n\nAdditional context: {extra_instructions}"
@@ -312,7 +390,10 @@ def ask_pass_level_filter(
         last_err = err
 
     try:
-        raw_guard = "Return ONLY a JSON object with keys 'keep_indices', 'drop_indices', and 'notes'. No extra text."
+        raw_guard = (
+            "Return ONLY a JSON object with keys 'keep_indices', 'drop_indices', and 'notes'. "
+            "No extra text or markdown."
+        )
         resp = client.responses.create(
             **{
                 **base_kwargs,
@@ -351,8 +432,11 @@ def ask_box_binary_check(
 
     crop_url = _to_data_url_png(crop_image)
     user_text = (
-        f"Single detection check.\nIndex: {box_index_1b}\nLabel: '{predicted_label}'\n"
-        "Return JSON with keys keep (bool) and reason (string)."
+        f"Single detection check.\n"
+        f"Index: {box_index_1b}\n"
+        f"Predicted label: '{predicted_label}'\n\n"
+        f"Decide keep=true if the crop clearly shows the predicted label; otherwise keep=false.\n"
+        f"Return ONLY JSON with the given schema."
     )
 
     base_kwargs: Dict[str, Any] = dict(
@@ -404,7 +488,8 @@ def ask_box_binary_check(
 
     try:
         guard = (
-            "Return ONLY a JSON object with keys 'keep' and 'reason'. No extra text."
+            "Return ONLY a JSON object with keys 'keep' (boolean) and 'reason' (string). "
+            "No extra text or markdown."
         )
         resp = client.responses.create(
             **{**base_kwargs, "instructions": base_kwargs["instructions"] + " " + guard}

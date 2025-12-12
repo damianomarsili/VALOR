@@ -2,9 +2,9 @@
 set -euo pipefail
 
 GPU_NUM=${1:-1}
-CFG=${2:-""}
-DATASETS=${3:-""}
-OUTPUT_DIR=${4:-""}
+CFG=${2:-"valor/grounding_training/Open-GroundingDino/config/cfg_odvg.py"}
+DATASETS=${3:-"valor/grounding_training/data/odvg/merged_dataset.json"}
+OUTPUT_DIR=${4:-"valor/grounding_training/checkpoints"}
 
 NNODES=${NNODES:-1}
 NODE_RANK=${NODE_RANK:-0}
@@ -15,10 +15,12 @@ SCRIPT_DIR=$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PROJECT_ROOT=$(cd "${SCRIPT_DIR}/../.." && pwd)
 OGD_ROOT="${SCRIPT_DIR}/Open-GroundingDino"
 
+cd "${PROJECT_ROOT}"
+
 UV_PROJECT_ENVIRONMENT=${UV_PROJECT_ENVIRONMENT:-"${PROJECT_ROOT}/.venv"}
 export UV_PROJECT_ENVIRONMENT
 
-PRETRAIN_MODEL_PATH=${PRETRAIN_MODEL_PATH:-"${OGD_ROOT}/weights/groundingdino_swint_ogc.pth"}
+PRETRAIN_MODEL_PATH=${PRETRAIN_MODEL_PATH:-"modules/GroundingDINO/weights/groundingdino_swint_ogc.pth"}
 TEXT_ENCODER_TYPE=${TEXT_ENCODER_TYPE:-"bert-base-uncased"}
 
 echo "
@@ -34,6 +36,9 @@ PRETRAIN_MODEL_PATH = ${PRETRAIN_MODEL_PATH}
 TEXT_ENCODER_TYPE = ${TEXT_ENCODER_TYPE}
 UV_PROJECT_ENVIRONMENT = ${UV_PROJECT_ENVIRONMENT}
 "
+
+
+mkdir -p "${OUTPUT_DIR}"
 
 uv run --active -- python -m torch.distributed.launch \
   --nproc_per_node="${GPU_NUM}" \
