@@ -24,7 +24,7 @@ _THINK_RE = re.compile(r"<plan>(.*?)</plan>", re.IGNORECASE | re.DOTALL)
 _ANSWER_RE = re.compile(r"<answer>(.*?)</answer>", re.IGNORECASE | re.DOTALL)
 _FENCE_RE = re.compile(r"```[ \t]*([A-Za-z0-9_+.\-]*)[^\n]*\n(.*?)\n?```", re.DOTALL)
 
-DEFAULT_DATA_ROOT = Path(os.environ.get("VALOR_DATA_ROOT", "/data/damiano/code/vadarl/data"))
+DEFAULT_DATA_ROOT = Path(os.environ.get("VALOR_DATA_ROOT", ""))
 DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent / "data" / "detector_outputs"
 DEFAULT_ODVG_DIR = Path(__file__).resolve().parent / "data" / "odvg"
 PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "system_prompt.jinja"
