@@ -102,6 +102,7 @@ To launch training, you must first copy the list in `grounding_training/data/odv
 ```bash
 uv run bash valor/grounding_training/train_gd.sh
 ```
+The trained checkpoint will default save to `valor/grounding_training/checkpoints/`. You can edit this target directory in the bash script `valor/grounding_training/train_gd.sh`.
 
 ## 📚 Citation
 If you use VALOR in your research, please consider citing our work:
