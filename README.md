@@ -1,4 +1,4 @@
-# ⭐ VALOR: No Labels, No Problem: Training Visual Reasoners with Multimodal Verifiers
+# ⭐ VALOR - No Labels, No Problem: Training Visual Reasoners with Multimodal Verifiers
 
 This is the code for the paper [No Labels, No Problem: Training Visual Reasoners with Multimodal Verifiers](https://glab-caltech.github.io/valor/) by [Damiano Marsili](https://damianomarsili.github.io/) and [Georgia Gkioxari](https://georgiagkioxari.com/).
 
