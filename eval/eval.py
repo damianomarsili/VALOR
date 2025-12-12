@@ -9,16 +9,20 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import re
+import tempfile
 from pathlib import Path
 from typing import List, Tuple
+from urllib.parse import urlparse
+from urllib.request import urlretrieve
 
 import datasets
+import numpy as np
 import torch
 from tqdm import tqdm
-import random
-import numpy as np
 
+from .executor import run_program
 from .metrics import update_accuracy
 from .utils import (
     image_to_path_in_dir,
@@ -26,7 +30,6 @@ from .utils import (
     load_system_prompt,
     parse_llm_response,
 )
-from .executor import run_program
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # ---------------------------------------------------------------------------
@@ -112,6 +115,23 @@ def execute_and_write_outputs(
     print(f"At idx {idx}, Pred: {pred_answer}, GT: {gt_answer}, Correct: {correct}")
 
     return current_acc, correct
+
+
+def _resolve_vsr_image(image_link: str | None) -> Path | None:
+    """Download a VSR image link to a temporary location"""
+
+    if not image_link:
+        return None
+
+    parsed = urlparse(image_link)
+    if parsed.scheme not in {"http", "https"}:
+        return None
+
+    suffix = Path(parsed.path).suffix or ".jpg"
+    fd, tmp_path = tempfile.mkstemp(prefix="vsr_img_", suffix=suffix)
+    os.close(fd)
+    urlretrieve(image_link, tmp_path)
+    return Path(tmp_path)
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +239,7 @@ def eval_omni3d_bench(model, processor, system_prompt, base_out_dir):
     print(f"Total Accuracy: {total_acc}")
 
 
-def eval_gqa(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_gqa(model, processor, system_prompt, base_out_dir):
     print("----- Evaluating GQA -----")
     out_dir = os.path.join(base_out_dir, "gqa")
     questions = load_jsonl(GQA_JSON_PATH)
@@ -245,7 +265,7 @@ def eval_gqa(model, processor, system_prompt, base_out_dir, execute, verbose):
     print(f"GQA Final Score: {score / len(questions)}")
 
 
-def eval_tally_qa(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_tally_qa(model, processor, system_prompt, base_out_dir):
     print("----- Evaluating TallyQA -----")
     questions = load_jsonl(TALLYQA_JSON_PATH)
     out_dir = os.path.join(base_out_dir, "tallyqa")
@@ -271,7 +291,7 @@ def eval_tally_qa(model, processor, system_prompt, base_out_dir, execute, verbos
     print(f"TallyQA Final Score: {score / len(questions)}")
 
 
-def eval_vsr(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_vsr(model, processor, system_prompt, base_out_dir):
     print("----- Evaluating VSR -----")
     out_dir = os.path.join(base_out_dir, "vsr")
     dataset = datasets.load_dataset(
@@ -281,7 +301,9 @@ def eval_vsr(model, processor, system_prompt, base_out_dir, execute, verbose):
     score = 0
     for i, q in enumerate(tqdm(dataset)):
         question = f"Is {q['caption']}?"
-        img_pth = os.path.join(VSR_IMG_ROOT, q["image"])
+        resolved = _resolve_vsr_image(q.get("image_link"))
+        img_pth = str(resolved)
+
         parsed = parse_llm_response(
             model_fwd(model, processor, system_prompt, question)
         )
@@ -345,10 +367,8 @@ def blink_eval_loop(
     processor,
     system_prompt,
     base_out_dir,
-    execute,
     n_choices,
     dset_name,
-    verbose,
 ):
     out_dir = os.path.join(base_out_dir, dset_name)
     score = 0
@@ -378,7 +398,7 @@ def blink_eval_loop(
     return score
 
 
-def eval_blink(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_blink(model, processor, system_prompt, base_out_dir):
     out_dir = os.path.join(base_out_dir, "blink")
     print("----- Evaluating BLINK -----")
     spat_data = datasets.load_dataset(
@@ -396,10 +416,8 @@ def eval_blink(model, processor, system_prompt, base_out_dir, execute, verbose):
         processor,
         system_prompt,
         out_dir,
-        execute,
         2,
         "spatial",
-        verbose,
     )
 
     print("Evaluating Counting")
@@ -410,17 +428,15 @@ def eval_blink(model, processor, system_prompt, base_out_dir, execute, verbose):
         processor,
         system_prompt,
         out_dir,
-        execute,
         4,
         "counting",
-        verbose,
     )
 
     print("Spatial Score:", spat_score / len(spat_data))
     print("Counting Score:", counting_score / len(counting_data))
 
 
-def eval_robospatial(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_robospatial(model, processor, system_prompt, base_out_dir):
     out_dir = os.path.join(base_out_dir, "robospatial")
     print("----- Evaluating RoboSpatial -----")
     comp_data = datasets.load_dataset(
@@ -480,7 +496,7 @@ def eval_robospatial(model, processor, system_prompt, base_out_dir, execute, ver
     print("Configuration Score:", conf_score / len(conf_data))
 
 
-def eval_countbenchqa(model, processor, system_prompt, base_out_dir, execute, verbose):
+def eval_countbenchqa(model, processor, system_prompt, base_out_dir):
     out_dir = os.path.join(base_out_dir, "countbenchqa")
     print("----- Evaluating CountBenchQA -----")
     countbench_data = datasets.load_dataset("vikhyatk/CountBenchQA")[
