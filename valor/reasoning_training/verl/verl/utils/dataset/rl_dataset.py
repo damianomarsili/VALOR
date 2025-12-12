@@ -122,7 +122,7 @@ class RLHFDataset(Dataset):
         self.max_side_length = config.get("max_side_length", 1080)
         self.min_side_length = config.get("min_side_length", 56)
         self.image_root = config.get(
-            "image_root", "/data/damiano/data/vadarl/omni3d-bench-v1/images/"
+            "image_root", ""
         )
 
         # Dami - System Prompt.

@@ -41,6 +41,18 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = ROOT.parent
 DEFAULT_PROMPT_PATH = PROJECT_ROOT / "valor" / "prompts" / "system_prompt.jinja"
+EVAL_DATA_ROOT = PROJECT_ROOT / "eval" / "data"
+
+# GRIT datasets keep the GRIT-data marker in the path for clarity
+GQA_JSON_PATH = EVAL_DATA_ROOT / "GRIT-data" / "gqa" / "gqa_val.jsonl"
+GQA_IMG_ROOT = EVAL_DATA_ROOT / "GRIT-data" / "gqa" / "images"
+TALLYQA_JSON_PATH = EVAL_DATA_ROOT / "GRIT-data" / "tallyqa" / "tallyqa_val.jsonl"
+TALLYQA_IMG_ROOT = EVAL_DATA_ROOT / "GRIT-data" / "tallyqa" / "visual_genome"
+VSR_IMG_ROOT = EVAL_DATA_ROOT / "vsr" / "images"
+BLINK_IMG_ROOT = EVAL_DATA_ROOT / "blink" / "images"
+ROBOSPATIAL_IMG_ROOT = EVAL_DATA_ROOT / "robospatial" / "images"
+COUNTBENCH_IMG_ROOT = EVAL_DATA_ROOT / "countbench"
+REALWORLDQA_IMG_ROOT = EVAL_DATA_ROOT / "realworldqa"
 
 
 def seed_everything(seed: int = 42):
@@ -210,10 +222,10 @@ def eval_omni3d_bench(model, processor, system_prompt, base_out_dir):
 def eval_gqa(model, processor, system_prompt, base_out_dir, execute, verbose):
     print("----- Evaluating GQA -----")
     out_dir = os.path.join(base_out_dir, "gqa")
-    questions = load_jsonl("/path/to/GRIT_data/gqa_val.jsonl")
+    questions = load_jsonl(GQA_JSON_PATH)
     score = 0
     for i, q in enumerate(tqdm(questions)):
-        img_pth = os.path.join("/data/damiano/code/vadarl/data/gqa", q["image"])
+        img_pth = os.path.join(GQA_IMG_ROOT, q["image"])
         parsed = parse_llm_response(
             model_fwd(model, processor, system_prompt, q["question"])
         )
@@ -235,13 +247,11 @@ def eval_gqa(model, processor, system_prompt, base_out_dir, execute, verbose):
 
 def eval_tally_qa(model, processor, system_prompt, base_out_dir, execute, verbose):
     print("----- Evaluating TallyQA -----")
-    questions = load_jsonl("/path/to/GRIT_data/tallyqa_val.jsonl")
+    questions = load_jsonl(TALLYQA_JSON_PATH)
     out_dir = os.path.join(base_out_dir, "tallyqa")
     score = 0
     for idx, q in enumerate(tqdm(questions)):
-        img_pth = os.path.join(
-            "/data/damiano/code/vadarl/data/tallyqa/visual_genome", q["image"]
-        )
+        img_pth = os.path.join(TALLYQA_IMG_ROOT, q["image"])
         parsed = parse_llm_response(
             model_fwd(model, processor, system_prompt, q["question"])
         )
@@ -271,7 +281,7 @@ def eval_vsr(model, processor, system_prompt, base_out_dir, execute, verbose):
     score = 0
     for i, q in enumerate(tqdm(dataset)):
         question = f"Is {q['caption']}?"
-        img_pth = os.path.join("/data/damiano/code/vadarl/data/vsr/images", q["image"])
+        img_pth = os.path.join(VSR_IMG_ROOT, q["image"])
         parsed = parse_llm_response(
             model_fwd(model, processor, system_prompt, question)
         )
@@ -345,7 +355,7 @@ def blink_eval_loop(
     for i in tqdm(range(n_q), desc=dset_name):
         sample = dataset[i]
         img_pth = image_to_path_in_dir(
-            sample["image_1"], "/data/damiano/code/vadarl/data/blink"
+            sample["image_1"], BLINK_IMG_ROOT
         )
         ans = sample["answer"][1]
 
@@ -427,7 +437,7 @@ def eval_robospatial(model, processor, system_prompt, base_out_dir, execute, ver
         query = comp_sample["question"]
         ans = comp_sample["answer"].lower()
         img_pth = image_to_path_in_dir(
-            comp_sample["img"], "/data/damiano/code/vadarl/data/robospatial"
+            comp_sample["img"], ROBOSPATIAL_IMG_ROOT
         )
         parsed = parse_llm_response(model_fwd(model, processor, system_prompt, query))
         plan_text, out_code = parsed["plan"], parsed["code"]
@@ -450,7 +460,7 @@ def eval_robospatial(model, processor, system_prompt, base_out_dir, execute, ver
         query = conf_sample["question"]
         ans = conf_sample["answer"].lower()
         img_pth = image_to_path_in_dir(
-            conf_sample["img"], "/data/damiano/code/vadarl/data/robospatial"
+            conf_sample["img"], ROBOSPATIAL_IMG_ROOT
         )
         parsed = parse_llm_response(model_fwd(model, processor, system_prompt, query))
         plan_text, out_code = parsed["plan"], parsed["code"]
@@ -481,7 +491,7 @@ def eval_countbenchqa(model, processor, system_prompt, base_out_dir, execute, ve
     for i, q in enumerate(tqdm(countbench_data)):
         question = q["question"]
         img_pth = image_to_path_in_dir(
-            q["image"], "/data/damiano/code/vadarl/data/countbench"
+            q["image"], COUNTBENCH_IMG_ROOT
         )
         ans = q["number"]
         parsed = parse_llm_response(
@@ -586,7 +596,7 @@ def eval_realworldqa(model, processor, system_prompt, base_out_dir):
             question, ans = realworld_qa_transform_block_flexible(question, ans)
 
         img_pth = image_to_path_in_dir(
-            q["image"], "/data/damiano/code/vadarl/data/realworldqa"
+            q["image"], REALWORLDQA_IMG_ROOT
         )
         parsed = parse_llm_response(
             model_fwd(model, processor, system_prompt, question)
