@@ -4,9 +4,8 @@
 CUDA_VISIBLE_DEVICES="0,1"
 VLLM_USE_FLASHINFER_SAMPLER=0
 PYTHONUNBUFFERED=1
-# GENAI_CREDS_PATH="PATH/TO/AUTH.json"
-GENAI_CREDS_PATH="/data/damiano/code/vadarl/model_eval/gemini.json"
-GENAI_PROJECT_ID="dami-project"
+GENAI_CREDS_PATH="PATH/TO/AUTH.json"
+GENAI_PROJECT_ID="project-name"
 
 # Data
 TRAIN_FILE="valor/reasoning_training/data/reasoning_data.jsonl"
@@ -37,8 +36,7 @@ TOTAL_EPOCHS=4
 
 # Reward
 CUSTOM_REWARD_PATH="valor/reasoning_training/verifier_reward.py"
-# CUSTOM_REWARD_NAME="compute_score_batched"
-CUSTOM_REWARD_NAME="compute_score_batched_dummy"
+CUSTOM_REWARD_NAME="compute_score_batched"
 
 #########################
 # Exports
