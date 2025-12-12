@@ -119,18 +119,6 @@ def _tensor_to_list(obj: Sequence) -> List:
     return obj
 
 
-def _resolve_image_path(image_field) -> Path | None:
-    """
-    Support HF Image objects and plain paths.
-    """
-    if isinstance(image_field, (str, Path)):
-        return Path(image_field)
-    candidate = getattr(image_field, "filename", None) or getattr(
-        image_field, "path", None
-    )
-    return Path(candidate) if candidate else None
-
-
 def materialize_image(image_field, target_dir: Path, stem: str) -> Path | None:
     """
     Save/copy the image to target_dir and return the path.
@@ -182,12 +170,12 @@ def cxcywh_norm_to_xyxy_abs(box, W, H):
 
 def record_signature(rec: dict) -> str:
     insts = rec.get("detection", {}).get("instances", [])
-    cooked = sorted([(i["category"], tuple(i["bbox"])) for i in insts])
+    cleaned = sorted([(i["category"], tuple(i["bbox"])) for i in insts])
     key = {
         "filename": rec.get("filename"),
         "height": rec.get("height"),
         "width": rec.get("width"),
-        "instances": cooked,
+        "instances": cleaned,
     }
     s = json.dumps(key, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(s.encode("utf-8")).hexdigest()
@@ -469,7 +457,10 @@ def save_record(record: Dict[str, object], output_path: Path) -> None:
 
 def iter_omni3d_samples(data_root: Path) -> Iterable[QuestionSample]:
     dataset = load_dataset("dmarsili/Omni3D-Bench", split="train")
-    dataset = dataset.select(range(min(len(dataset), 400))).with_format("python")
+    # Use the last 400 training samples (these are the train split items we want)
+    total = len(dataset)
+    start = total - 400
+    dataset = dataset.select(range(start, total)).with_format("python")
     for sample in dataset:
         img = sample.get("image") or sample.get("image_path")
         question = sample.get("question") or sample.get("text")
