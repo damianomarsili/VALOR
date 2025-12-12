@@ -68,7 +68,14 @@ uv run python -m eval.eval --datasets omni3d-bench,tallyqa,realworldqa --out_dir
 ```
 
 ## 🧠 Reasoning Training
-Coming soon!
+VALOR uses LLM verifiers to improve the reasoning ability of an LLM. Training invokes Gemini and requires a google cloud account. We recommend authenticating via a [service account](https://developers.google.com/workspace/guides/create-credentials#service-account). Once authenticated, you should update the `GENAI_CREDS_PATH` and `GENAI_PROJECT_ID` variables in the `grounding_training/llm_training.sh` script.
+
+Then, you can launch reasoning training via the following command:
+```bash
+uv run bash valor/reasoning_training/llm_training.sh
+```
+
+The data used to train VALOR is found in `reasoning_training/data/reasoning_data.jsonl`. 
 
 ## 📌 Grounding Training
 Coming soon!
