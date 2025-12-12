@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
 # Environment
-CUDA_VISIBLE_DEVICES="0,1"
+CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 VLLM_USE_FLASHINFER_SAMPLER=0
 PYTHONUNBUFFERED=1
+RAY_RUNTIME_ENV_LOCAL_DEV_MODE=1
+UV_PROJECT_ENVIRONMENT="$(pwd)/.venv"
 GENAI_CREDS_PATH="PATH/TO/AUTH.json"
-GENAI_PROJECT_ID="project-name"
+GENAI_PROJECT_ID=""
 
 # Data
 TRAIN_FILE="valor/reasoning_training/data/reasoning_data.jsonl"
@@ -26,7 +28,7 @@ ROLLOUT_N=5
 # Trainer / logging
 PROJECT_NAME="VALOR_Training"
 EXPERIMENT_NAME="valor_llm_reasoning"
-N_GPUS_PER_NODE=2
+N_GPUS_PER_NODE=8
 # N_GPUS_PER_NODE=4
 NNODES=1
 DEFAULT_LOCAL_DIR="valor/reasoning_training/checkpoints/llm_reasoning"
@@ -45,6 +47,8 @@ CUSTOM_REWARD_NAME="compute_score_batched"
 export CUDA_VISIBLE_DEVICES
 export VLLM_USE_FLASHINFER_SAMPLER
 export PYTHONUNBUFFERED
+export RAY_RUNTIME_ENV_LOCAL_DEV_MODE
+export UV_PROJECT_ENVIRONMENT
 export GENAI_CREDS_PATH
 export GENAI_PROJECT_ID
 
@@ -52,7 +56,7 @@ export GENAI_PROJECT_ID
 # Command
 #########################
 
-uv run -- python -m verl.trainer.main_ppo \
+uv run --active -- python -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
     data.train_files="${TRAIN_FILE}" \
     data.val_files="${VAL_FILE}" \

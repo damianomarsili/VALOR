@@ -183,42 +183,7 @@ def compute_all_rewards(query, llm_out):
     return total
 
 
-# def compute_score_batched(
-#     data_sources,
-#     solution_strs,
-#     ground_truths,
-#     extra_infos,
-#     *,
-#     max_workers: int = 24,
-#     timeout_sec: float = 30.0,
-# ) -> list[float]:
-
-#     if len(solution_strs) != len(extra_infos):
-#         raise ValueError("Mismatched lengths")
-
-#     def _get_question(info):
-#         if isinstance(info, dict):
-#             return info.get("problem", "")
-#         return getattr(info, "problem", "")
-
-#     results = [0.0] * len(solution_strs)
-
-#     def _one(idx: int, code: str, info: Any):
-#         q = _get_question(info)
-#         results[idx] = compute_all_rewards(query=q, llm_out=code)
-
-#     with ThreadPoolExecutor(max_workers=max_workers) as pool:
-#         futs = {
-#             pool.submit(_one, i, s, info): i
-#             for i, (s, info) in enumerate(zip(solution_strs, extra_infos))
-#         }
-#         for fut in as_completed(futs):
-#             _ = futs[fut]  # completion only; results set by index
-
-#     return results
-
-
-def compute_score_batched_dummy(
+def compute_score_batched(
     data_sources,
     solution_strs,
     ground_truths,
@@ -231,6 +196,23 @@ def compute_score_batched_dummy(
     if len(solution_strs) != len(extra_infos):
         raise ValueError("Mismatched lengths")
 
+    def _get_question(info):
+        if isinstance(info, dict):
+            return info.get("problem", "")
+        return getattr(info, "problem", "")
+
     results = [0.0] * len(solution_strs)
+
+    def _one(idx: int, code: str, info: Any):
+        q = _get_question(info)
+        results[idx] = compute_all_rewards(query=q, llm_out=code)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futs = {
+            pool.submit(_one, i, s, info): i
+            for i, (s, info) in enumerate(zip(solution_strs, extra_infos))
+        }
+        for fut in as_completed(futs):
+            _ = futs[fut]  # completion only; results set by index
 
     return results
