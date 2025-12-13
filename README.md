@@ -12,7 +12,7 @@ This is the code for the paper [No Labels, No Problem: Training Visual Reasoners
 ## 🚀 Quickstart
 Clone the repo:
 ```bash
-git clone https://github.com/damianomarsili/VALOR.git
+git clone --recurse-submodules https://github.com/damianomarsili/VALOR.git
 ```
 
 We use `uv` to manage all dependencies. If your system does not have `uv`, install it via:
@@ -26,7 +26,7 @@ uv sync
 ```
 ⚠️ Note: This setup assumes CUDA 12.8 and Python 3.10.  If you are using a different CUDA version, you may need to install a version of `torch` and `flash-attn` compatible with your system.
 
-VALOR uses [MoGe](https://github.com/microsoft/MoGe) and [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO). 
+VALOR uses [MoGe](https://github.com/microsoft/MoGe) and [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO) (forked for install compatibility).
 
 ⚠️ Note: Prior to installing GroundingDINO, please follow the additional installation steps for setting the `CUDA_HOME` environment variable detailed on their [repo](https://github.com/IDEA-Research/GroundingDINO?tab=readme-ov-file#hammer_and_wrench-install).
 
