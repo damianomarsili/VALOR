@@ -1,0 +1,4 @@
+[submodule "modules/GroundingDINO"]
+	path = modules/GroundingDINO
+	url = https://github.com/damianomarsili/GroundingDINO.git
+	branch = main
