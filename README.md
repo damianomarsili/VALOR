@@ -107,13 +107,10 @@ The trained checkpoint will default save to `valor/grounding_training/checkpoint
 ## 📚 Citation
 If you use VALOR in your research, please consider citing our work:
 ```bibtex
-@misc{marsili2025labelsproblemtrainingvisual,
-      title={No Labels, No Problem: Training Visual Reasoners with Multimodal Verifiers}, 
-      author={Damiano Marsili and Georgia Gkioxari},
-      year={2025},
-      eprint={2512.08889},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2512.08889}, 
+@article{marsili2025no,
+  title={No Labels, No Problem: Training Visual Reasoners with Multimodal Verifiers},
+  author={Marsili, Damiano and Gkioxari, Georgia},
+  journal={arXiv preprint arXiv:2512.08889},
+  year={2025}
 }
 ```
